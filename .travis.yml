@@ -1,0 +1,48 @@
+language: c
+cache: ccache
+dist: bionic
+python: 3.8
+before_install:
+  - sudo apt-get update
+  - sudo apt-get -y install python3-pip python3-setuptools
+  - sudo pip3 install --upgrade pip
+  - sudo pip3 install nrfutil
+  - wget https://sourceforge.net/projects/sdcc/files/sdcc-linux-amd64/4.0.0/sdcc-4.0.0-amd64-unknown-linux2.5.tar.bz2 -O /tmp/sdcc-4.0.0-amd64-unknown-linux2.5.tar.bz2
+  - tar xf /tmp/sdcc-4.0.0-amd64-unknown-linux2.5.tar.bz2 -C /tmp
+  - sudo cp -r /tmp/sdcc-4.0.0/* /usr/local
+install:
+  - wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2018q2/gcc-arm-none-eabi-7-2018-q2-update-linux.tar.bz2 -O /tmp/gcc-arm-none-eabi-7-2018-q2-update-linux.tar.bz2
+  - tar xf /tmp/gcc-arm-none-eabi-7-2018-q2-update-linux.tar.bz2 -C /tmp
+  - wget http://developer.nordicsemi.com/nRF5_SDK/nRF5_SDK_v15.x.x/nRF5_SDK_15.3.0_59ac345.zip -O /tmp/nRF5_SDK_15.3.0_59ac345.zip
+  - mkdir /tmp/sdk
+  - unzip -q /tmp/nRF5_SDK_15.3.0_59ac345.zip -d /tmp/sdk
+  - wget https://www.nordicsemi.com/-/media/Software-and-other-downloads/Desktop-software/nRF-command-line-tools/sw/Versions-10-x-x/10-12-1/nRFCommandLineTools10121Linuxamd64.tar.gz -O /tmp/nRF-command-line-tools.tar.gz
+  - mkdir /tmp/tools
+  - tar xf /tmp/nRF-command-line-tools.tar.gz -C /tmp/tools
+  - tar xf /tmp/tools/nRF-Command-Line-Tools_10_12_1.tar -C /tmp/tools
+  - sudo cp -r /tmp/tools/mergehex /opt
+  - sudo ln -s /opt/mergehex/mergehex /usr/local/bin/mergehex
+script:
+  - cp template/Makefile.posix.template template/Makefile.posix
+  - sed -i "s/\/usr\/local/\/tmp/g" template/Makefile.posix
+  - cp -r /tmp/sdk/nRF5_SDK_15.3.0_59ac345/* SDK/
+  - rm -r tmk/tmk_core/protocol/usb_hid/USB_Host_Shield_2.0-tmk/
+  - cd tmk/ && git reset --hard
+  - cd ../
+  - git status
+  - cd keyboard
+  - make -j
+  - cd ../
+deploy:
+  provider: releases
+  api_key:
+    secure: YLjJb7by7nBhddRk1Or7Nf4NUVfTkWM/+zzgzjj26fwQ3qVn0KxAMeQgiKf0/FJ7JNh5JlXIfpY4aNCOtIx923qg/afcghcg0smUJUrTccdN6tr+NH4RYDEq7+KFQNNVkV6Ls9d7ObThjpu0VWINss/bOG1jmD9ueTyjO3oShg4Ql39NgzICWqhvGt+EK5tggY/u8zYnB49MCWbmh5DWBCzwW/xErTKn75hpKlmPaHEYLIOV4LKFxWOiXAQIFuDJ9qdgmmhYQNoUpLZbP2qGGCCvf6MsJEOttY+0nx8Pog9oRHtStCXy9fjiUhXxw0BZaGPi1qhEExeNvuWx9DawjyA34wEs25pzZ4ZzhFGYgB6uC/CB9m3PHifswGzOU4xj1DCFPmkVXqbTrtYCkaSX8SeQd1r0ind54DC6CSkGJfbo7JMwHcctMHN25CR/7U96eKl7NiHjou7e8JoFvAfbS3qfhoTtTHqneuan3kQuFdlg9FGe+JzIwaczvvGM5H0MCqh3Pz5TpU5PmS591Fp6mPYuPNHaZpDw6yuysOFYibchC58yx4uNjMYPCa/aK6JGukQUtlf0F8+nRcyZl+r84SDOvmpqv+R/rafDJQiTdDPfvHAKE6MrVgLKfHtL+iTeNm56o6cQ3zaMZlVUsNY+eun3H9hyup4aNImELTP2EAc=
+  file_glob: true
+  file: 
+    - keyboard/_build/*.zip
+    - keyboard/_build/*.bin
+    - keyboard/_build/*.hex
+  skip_cleanup: true
+  on:
+    tags: true
+
